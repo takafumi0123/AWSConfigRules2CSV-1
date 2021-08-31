@@ -60,6 +60,8 @@ def get_comformance_pack_list():
         element=soup2.find(text=re.compile("The template is available on GitHub"))
         if element:
             githubURL=element.parent.a.get("href")
+            #for document bug
+            githubURL=fixGithubURL(githubURL)
             comformance_github=requests.get(githubURL)
             uri = BeautifulSoup(comformance_github.text, 'lxml').find(id="raw-url").get("href")
          
@@ -74,6 +76,10 @@ def get_comformance_pack_list():
             pack_list[pack_name] = r
     print('Conformance Pack list created')
     return(pack_list)
+def fixGithubURL(url):
+    url=url.replace("Operational-Best-Practices-for-CIS-AWS-FB-v1.4-Level1.yaml","Operational-Best-Practices-for-CIS-AWS-v1.4-Level1.yaml")
+    url=url.replace("Operational-Best-Practices-for-CIS-AWS-FB-v1.4-Level2.yaml","Operational-Best-Practices-for-CIS-AWS-v1.4-Level2.yaml")
+    return url
     
 # retrieve AWS Config Idetifier from YAML( Cloudformation template) in Github    
 def analyzeComformancePackYAML(text):
@@ -218,3 +224,5 @@ with open(file_name, 'w') as f:
     writer.writeheader()
     writer.writerows(rules)
     print('CSV file is created!  ' + file_name)
+    
+print("The number of AWS Config Rules is "+len(rules))
