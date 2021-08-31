@@ -28,8 +28,6 @@ aws_doc_config_base_url = "https://docs.aws.amazon.com" + lang + "/config/latest
 aws_doc_config_managed_rules_uri = "https://docs.aws.amazon.com" + lang + "/config/latest/developerguide/managed-rules-by-aws-config.html"
 aws_doc_comformancepack_template_url="https://docs.aws.amazon.com/config/latest/developerguide/conformancepack-sample-templates.html"
 
-
-
 # get conformance pack yaml code from aws document
 def get_comformance_pack_list():
 
@@ -97,7 +95,7 @@ def analyzeComformancePackYAML(text):
 
 def del_spaces(s):
     # delete indent, tab, sequential spaces
-    return(s.replace('\n' , '').replace('\t' , '').replace('  ' , '').strip())
+    return(s.replace('\n' , ' ').replace('\t' , ' ').replace('  ' , '').strip())
 
 # For CIS Standard  
 def get_securityhub_cis_list():
@@ -119,7 +117,7 @@ def security_standard_parser(b_uri):
     soup = BeautifulSoup(page.text, 'lxml')
     # get config rules pages
     rulesList = soup.find(id="main-content").find_all("h2")
-    rule_IDs=[]
+    rule_IDs={}
     for rule in rulesList:
         ruleName = del_spaces(rule.text)
         ##Severity/Config RuleId Search
@@ -128,23 +126,44 @@ def security_standard_parser(b_uri):
             if "AWS Config rule:" in rule.next_sibling.next_sibling.text:
                 id=rule.next_sibling.next_sibling.text.split(":")[1]
                 id=del_spaces(id)   
-                if id =="None" :
-                    id=None
                 break
             rule=rule.next_sibling.next_sibling
-        if id is not None:
-            rule_IDs.append(del_spaces(id).upper().replace("-","_"))
+        if id is None or id =="None" or id.startswith("None."):
+            rule_IDs[ruleName]="None"
+        else:
+            rule_IDs[ruleName]=del_spaces(id).upper().replace("-","_")
     return rule_IDs
+    
+def dumpCSV(file_name,header,data):
+    with open(file_name, 'w') as f:
+        writer = csv.DictWriter(f, header)
+        writer.writeheader()
+        writer.writerows(data)
+        print('CSV file is created!  ' + file_name)
 
-
+def dumpCSVbyArray(file_name,header,list_data):
+    data=[]
+    for key in list_data:
+        data.append({"Standard Rule Name":key,"RuleID":list_data.get(key)})
+    dumpCSV(file_name,header,data)
 #
 # main
 #
+package_list={}
+#package_list = get_comformance_pack_list()
+temp_header={"RuleID","Standard Rule Name"}
+temp_list=get_securityhub_cis_list()
+dumpCSVbyArray("cis.csv",temp_header,temp_list)
+package_list["security_hub_cis"]= temp_list.values
 
-package_list = get_comformance_pack_list()
-package_list["security_hub_cis"]= get_securityhub_cis_list()
-package_list["security_hub_pci"]= get_securityhub_pci_list()
-package_list["security_hub_abp"]= get_securityhub_abp_list()
+
+temp_list= get_securityhub_pci_list()
+dumpCSVbyArray("pci.csv",temp_header,temp_list)
+package_list["security_hub_pci"]=temp_list.values
+
+temp_list=get_securityhub_abp_list()
+dumpCSVbyArray("abp.csv",temp_header,temp_list)
+package_list["security_hub_abp"]= temp_list.values
 
 # create csv header
 package_names = list(package_list.keys())
@@ -218,11 +237,6 @@ for page in link_list:
     rules.append(this_rule)
 
 # output csv 2 current disk
-file_name = "aws_config_managed_rules.csv"
-with open(file_name, 'w') as f:
-    writer = csv.DictWriter(f, csv_header_list)
-    writer.writeheader()
-    writer.writerows(rules)
-    print('CSV file is created!  ' + file_name)
-    
+dumpCSV("aws_config_managed_rules.csv",csv_header_list,rules)
 print("The number of AWS Config Rules is "+len(rules))
+
