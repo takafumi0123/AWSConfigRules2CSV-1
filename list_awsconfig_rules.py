@@ -150,7 +150,7 @@ def dumpCSVbyArray(file_name,header,list_data):
 # main
 #
 package_list={}
-#package_list = get_comformance_pack_list()
+package_list = get_comformance_pack_list()
 temp_header={"RuleID","Standard Rule Name"}
 temp_list=get_securityhub_cis_list()
 dumpCSVbyArray("cis.csv",temp_header,temp_list)
