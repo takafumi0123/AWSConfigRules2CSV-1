@@ -38,7 +38,7 @@ def get_comformance_pack_list():
     soup = BeautifulSoup(comformancePack_link_page.text, 'lxml')
 
     # get config rules pages's from <a> tag
-    conformancePack_link_list = soup.find(id="main-col-body").find_all("a")
+    conformancePack_link_list = soup.find(id="main-col-body").find_all("a")[0::3]
     pack_list = {}
     # make  a list of config rules for each comformance pack
     for conformancePack_link in conformancePack_link_list:
@@ -67,7 +67,7 @@ def get_comformance_pack_list():
             yaml_data=requests.get(yamlURL)
             yaml_data.encoding = 'utf-8'
             soup4 = BeautifulSoup(yaml_data.text, 'lxml')
-            pack_name = element.parent.a.text
+            pack_name = del_spaces(element.parent.a.text)
             # Create Rule List
             r=analyzeComformancePackYAML(yaml_data.text)
 
@@ -131,8 +131,14 @@ def security_standard_parser(b_uri):
         if id is None or id =="None" or id.startswith("None."):
             rule_IDs[ruleName]="None"
         else:
-            rule_IDs[ruleName]=del_spaces(id).upper().replace("-","_")
+            rule_IDs[ruleName]=convertRuleId(id)
+                    
     return rule_IDs
+def convertRuleId(id):
+    converted_id = del_spaces(id).upper().replace("-","_")
+    converted_id=converted_id.replace("CLOUD_TRAIL","CLOUDTRAIL")
+    
+    return converted_id 
     
 def dumpCSV(file_name,header,data):
     with open(file_name, 'w') as f:
@@ -154,16 +160,16 @@ package_list = get_comformance_pack_list()
 temp_header={"RuleID","Standard Rule Name"}
 temp_list=get_securityhub_cis_list()
 dumpCSVbyArray("cis.csv",temp_header,temp_list)
-package_list["security_hub_cis"]= temp_list.values
+package_list["security_hub_cis"]= temp_list.values()
 
 
 temp_list= get_securityhub_pci_list()
 dumpCSVbyArray("pci.csv",temp_header,temp_list)
-package_list["security_hub_pci"]=temp_list.values
+package_list["security_hub_pci"]=temp_list.values()
 
 temp_list=get_securityhub_abp_list()
 dumpCSVbyArray("abp.csv",temp_header,temp_list)
-package_list["security_hub_abp"]= temp_list.values
+package_list["security_hub_abp"]= temp_list.values()
 
 # create csv header
 package_names = list(package_list.keys())
@@ -238,5 +244,4 @@ for page in link_list:
 
 # output csv 2 current disk
 dumpCSV("aws_config_managed_rules.csv",csv_header_list,rules)
-print("The number of AWS Config Rules is "+len(rules))
-
+print("The number of AWS Config Rules is "+str(len(rules)))
