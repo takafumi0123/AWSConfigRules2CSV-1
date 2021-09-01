@@ -119,12 +119,11 @@ for page in link_list:
     # delete indent, tab, sequential spaces
     description = del_spaces(description)
 
-    # 識別子をmain-col-bodyの２つ目の<p>から切り出す→要修正ポイント１
     print('---- creating rule list ---- ' + soup2.h1.text)
-    for i in range(100):
-        if ':' in soup2.find(id="main-col-body").find_all("p")[i].text.strip():
-            identifier = soup2.find(
-                id="main-col-body").find_all("p")[i].text.strip().split(':')[1]
+    ptag_list= soup2.find(id="main-col-body").find_all("p")
+    for ptag in ptag_list:
+        if ':' in ptag.text.strip():
+            identifier = ptag.text.strip().split(':')[1]
 
             # delete indent, tab, sequential spaces
             identifier = del_spaces(identifier)

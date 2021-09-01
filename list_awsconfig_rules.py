@@ -38,7 +38,7 @@ def get_comformance_pack_list():
     soup = BeautifulSoup(comformancePack_link_page.text, 'lxml')
 
     # get config rules pages's from <a> tag
-    conformancePack_link_list = soup.find(id="main-col-body").find_all("a")[0::3]
+    conformancePack_link_list = soup.find(id="main-col-body").find_all("a")
     pack_list = {}
     # make  a list of config rules for each comformance pack
     for conformancePack_link in conformancePack_link_list:
@@ -131,15 +131,10 @@ def security_standard_parser(b_uri):
         if id is None or id =="None" or id.startswith("None."):
             rule_IDs[ruleName]="None"
         else:
-            rule_IDs[ruleName]=convertRuleId(id)
-                    
+            rule_IDs[ruleName]=id
     return rule_IDs
-def convertRuleId(id):
-    converted_id = del_spaces(id).upper().replace("-","_")
-    converted_id=converted_id.replace("CLOUD_TRAIL","CLOUDTRAIL")
-    
-    return converted_id 
-    
+
+
 def dumpCSV(file_name,header,data):
     with open(file_name, 'w') as f:
         writer = csv.DictWriter(f, header)
@@ -156,26 +151,32 @@ def dumpCSVbyArray(file_name,header,list_data):
 # main
 #
 package_list={}
-package_list = get_comformance_pack_list()
+standard_list={}
+#package_list = get_comformance_pack_list()
 temp_header={"RuleID","Standard Rule Name"}
 temp_list=get_securityhub_cis_list()
 dumpCSVbyArray("cis.csv",temp_header,temp_list)
-package_list["security_hub_cis"]= temp_list.values()
+standard_list["security_hub_cis"]= temp_list.values()
 
 
 temp_list= get_securityhub_pci_list()
 dumpCSVbyArray("pci.csv",temp_header,temp_list)
-package_list["security_hub_pci"]=temp_list.values()
+standard_list["security_hub_pci"]=temp_list.values()
 
 temp_list=get_securityhub_abp_list()
 dumpCSVbyArray("abp.csv",temp_header,temp_list)
-package_list["security_hub_abp"]= temp_list.values()
+standard_list["security_hub_abp"]= temp_list.values()
 
 # create csv header
-package_names = list(package_list.keys())
-
 csv_header_list = ["rule_name", "description", "identifier","trigger","region"]
-csv_header_list.extend(package_names)
+package_names = []
+standard_names=[]
+if len(package_list) > 0:
+    package_names = list(package_list.keys())
+    csv_header_list.extend(package_names)
+if len(standard_list) > 0:
+    standard_names = list(standard_list.keys())
+    csv_header_list.extend(standard_names)
 
 # create config rule list 
 r = requests.get(aws_doc_config_managed_rules_uri)
@@ -197,29 +198,31 @@ for page in link_list:
 
     # delete indent, tab, sequential spaces
     description = del_spaces(description)
+    rune_name=soup2.h1.text
 
     # 識別子をmain-col-bodyの２つ目の<p>から切り出す→要修正ポイント１
     print('---- creating rule list ---- ' + soup2.h1.text)
     identifier=None
     trigger=None
     region=None
-    targetPList=soup2.find(id="main-col-body").find_all("p")[0:10]
-    for p_item in targetPList:
+    targetPList=soup2.find(id="main-col-body").find_all("p")
+    for ptag_item in targetPList:
         
-        if identifier == None and id_key in p_item.text.strip():
-            identifier =  p_item.text.strip().replace(id_key,"")
+        if identifier == None and id_key in ptag_item.text.strip():
+            identifier =  ptag_item.text.strip().replace(id_key,"")
             # delete indent, tab, sequential spaces
             identifier = del_spaces(identifier)
             # delete single space
             identifier = identifier.replace(' ', '')
-        if trigger == None and  trigger_key in p_item.text.strip():
-            trigger =  p_item.text.strip().replace(trigger_key,"")
+#            identifier = identifier.replace('CLOUD_TRAIL', 'CLOUDTRAIL')
+        if trigger == None and  trigger_key in ptag_item.text.strip():
+            trigger =  ptag_item.text.strip().replace(trigger_key,"")
             # delete indent, tab, sequential spaces
             trigger = del_spaces(trigger)
             # delete single space
             trigger = trigger.replace(' ', '')
-        if region == None and region_key in p_item.text.strip():
-            region =  p_item.text.strip().replace(region_key,"")
+        if region == None and region_key in ptag_item.text.strip():
+            region =  ptag_item.text.strip().replace(region_key,"")
 
             # delete indent, tab, sequential spaces
             region = del_spaces(region)
@@ -235,6 +238,12 @@ for page in link_list:
     # 各Config Rulesの識別子が各パッケージ(or Standard)で利用されているRule群に含まれているかどうかをリストに追加する。
     for package_name in package_names:
         if identifier in package_list.get(package_name):
+            this_rule[package_name] = 'YES'
+        else:
+            this_rule[package_name] = '-'
+            
+    for package_name in standard_names:
+        if rune_name in standard_list.get(package_name):
             this_rule[package_name] = 'YES'
         else:
             this_rule[package_name] = '-'
