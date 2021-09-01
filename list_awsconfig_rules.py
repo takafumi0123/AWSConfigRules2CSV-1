@@ -152,7 +152,7 @@ def dumpCSVbyArray(file_name,header,list_data):
 #
 package_list={}
 standard_list={}
-#package_list = get_comformance_pack_list()
+package_list = get_comformance_pack_list()
 temp_header={"RuleID","Standard Rule Name"}
 temp_list=get_securityhub_cis_list()
 dumpCSVbyArray("cis.csv",temp_header,temp_list)
@@ -171,12 +171,12 @@ standard_list["security_hub_abp"]= temp_list.values()
 csv_header_list = ["rule_name", "description", "identifier","trigger","region"]
 package_names = []
 standard_names=[]
-if len(package_list) > 0:
-    package_names = list(package_list.keys())
-    csv_header_list.extend(package_names)
 if len(standard_list) > 0:
     standard_names = list(standard_list.keys())
     csv_header_list.extend(standard_names)
+if len(package_list) > 0:
+    package_names = list(package_list.keys())
+    csv_header_list.extend(package_names)
 
 # create config rule list 
 r = requests.get(aws_doc_config_managed_rules_uri)
